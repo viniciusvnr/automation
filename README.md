@@ -1,6 +1,6 @@
 # Intro
 
-The objective here is to provide usefull scripts for DevOps tasks.
+The objective here is to provide useful scripts for DevOps tasks.
 
 ## Scripts
 
