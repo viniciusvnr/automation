@@ -3,20 +3,23 @@ import urllib3
 import certifi
 from azure.devops.connection import Connection
 from msrest.authentication import BasicAuthentication
-from pprint import  pprint
+from pprint import pprint
 
 http = urllib3.PoolManager()
 
+
 def post_to_slack(slackurl, message='Hello World'):
     slack_url = slackurl
-    
+
     encoded_data = json.dumps({'text': message}).encode('utf-8')
-    response = http.request("POST", slack_url, body=encoded_data, headers={'Content-Type': 'application/json'})
+    response = http.request("POST", slack_url, body=encoded_data, headers={
+                            'Content-Type': 'application/json'})
     print(str(response.status) + str(response.data))
+
 
 slackuri = "{SlackWebhook_url}"
 
-#Azure DevOps
+# Azure DevOps
 personal_access_token = '{PAT_TOKEN}'
 organization_url = 'https://dev.azure.com/{organization}'
 
@@ -38,19 +41,19 @@ for project in projects:
         defaultbranch = repo.default_branch
 
         filetered_policies = (x for x in project_policies
-                                if x.type.display_name == "Minimum number of reviewers" and
-                                    x.settings.get("scope")[0].get("refName") == defaultbranch and 
-                                    x.settings.get("scope")[0].get("repositoryId") == repid)
+                              if x.type.display_name == "Minimum number of reviewers" and
+                              x.settings.get("scope")[0].get("refName") == defaultbranch and
+                              x.settings.get("scope")[0].get("repositoryId") == repid)
         bpol = next(filetered_policies, None)
         if bpol != None:
             # compliant = bpol.settings
             poltype = bpol.type.display_name
             scope = bpol.settings.get("scope")
             minapprovecount = bpol.settings.get("minimumApproverCount")
-                    
+
             if minapprovecount != None:
                 if minapprovecount < 2:
-                    mslack = "Project: ", project.name, ' | repo: ', repo.name," | Branch: ", defaultbranch, " | Conformidade: Não"
+                    mslack = "Project: ", project.name, ' | repo: ', repo.name, " | Branch: ", defaultbranch, " | Conformidade: Não"
                     msg = ''.join(mslack)
                     post_to_slack(slackuri, msg)
                 elif minapprovecount >= 2:
