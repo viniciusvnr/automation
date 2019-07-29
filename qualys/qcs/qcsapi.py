@@ -1,85 +1,96 @@
 import requests
 from app_config import config
+import json
 import re
 
-# Utilizando arquivo config
-# class QualysAuth:
-#     def __init__(self):
-#         pass
+# config.get_apiuri()
+class UrlBuilder:
+    def __init__(self, base_uri=config.get_apiuri()):
+        self.uri = base_uri
 
-#     def _BasicAuth(self, user, pwd):
-#         self.creds = (user, pwd)
-#         return self.creds
-
-
-class BaseUrl:
-    def __init__(self):
-        self.uri = config.get_apiuri()
-
-    def _urn(self, path):
+    def build(self, path):
         self.path = path
         return self.uri + self.path
 
 
-class QualysSensor(BaseUrl):
-    def __init__(self, auth):
+class QualysSensor:
+    def __init__(self, auth, url_builder):
         self.auth = auth
-        BaseUrl.__init__(self)
+        self.url_builder = url_builder
 
     def GetAll(self):
-        return requests.get(self._urn("/v1.1/sensors/"), auth=(self.auth))
+        result = requests.get(self.url_builder.build("/v1.1/sensors/"), auth=(self.auth))
+        return AnalysisResult.get_AnalysisResult(result)
 
     def GetBySensorId(self, sensorId):
         self.sensorId = sensorId
-        return requests.get(
-            self._urn(f"/v1.1/sensors/{self.sensorId}"), auth=(self.auth)
-        )
+        result = requests.get(self.url_builder.build(f"/v1.1/sensors/{self.sensorId}"), auth=(self.auth))
+        return AnalysisResult.get_AnalysisResult(result)
 
     def RemoveBySensorId(self):
-        return requests.delete(
-            self._urn(f"/v1.1/sensors/{self.sensorId}"), auth=(self.auth)
-        )
+        result = requests.delete(self.url_builder.build(f"/v1.1/sensors/{self.sensorId}"), auth=(self.auth))
+        return AnalysisResult.get_AnalysisResult(result)
 
 
-class QualysImages(BaseUrl):
-    def __init__(self, auth):
+class QualysImages:
+    def __init__(self, auth, url_builder):
         self.auth = auth
-        BaseUrl.__init__(self)
+        self.url_builder = url_builder
 
     def GetAll(self):
-        return requests.get(self._urn("/v1.1/images/"), auth=(self.auth))
+        result = requests.get(self.url_builder.build("/v1.1/images/"), auth=(self.auth))
+        return AnalysisResult.get_AnalysisResult(result)
 
     def GetByImageId(self, imageId):
         self.imageId = imageId
-        return requests.get(self._urn(f"/v1.1/images/{self.imageId}"), auth=(self.auth))
+        result = requests.get(self.url_builder.build(f"/v1.1/images/{self.imageId}"), auth=(self.auth))
+        return AnalysisResult.get_AnalysisResult(result)
 
     def GetImageVuln(self, imageId):
 
-        return requests.get(self._urn(f"/v1.1/images/{imageId}/vuln"), auth=(self.auth))
+        result = requests.get(self.url_builder.build(f"/v1.1/images/{imageId}/vuln"), auth=(self.auth))
+        return AnalysisResult.get_AnalysisResult(result)
 
     def GetImageVulnCount(self, imageId):
         self.imageId = imageId
-        return requests.get(
-            self._urn(f"/v1.1/images/{self.imageId}/vuln/count"), auth=(self.auth)
-        )
+        result = requests.get(self.url_builder.build(f"/v1.1/images/{self.imageId}/vuln/count"), auth=(self.auth))
+        return AnalysisResult.get_AnalysisResult(result)
+
+
+class AnalysisResult:
+    def __init__(self):
+        pass
+
+    ## Ao invés de usar um dicionário, você poderia fazer uma classe
+    ## Vantagens:
+    ##  1 - Encapsular lógica de parse do JSON na propria classe
+    ##  2 - Seu linter pode checar existencia ou nao de campo mais facilmente
+    ## Nome de exemplo: AnalysisResult
+
+    @classmethod
+    def get_AnalysisResult(self, response):
+        self.response = response.json()
+        template = """{
+                        "imageId": "",
+                        "repository": "",
+                        "tag": "",
+                        "vulnerabilityCount": "",
+                        "vulnerabilities": "[]"
+                       }"""
+
+        result = json.loads(template)
+
+        result["imageId"] = self.response["imageId"]
+        result["repository"] = self.response["repo"][0]["repository"]
+        result["tag"] = self.response["repo"][0]["tag"]
+        result["vulnerabilityCount"] = self.response["totalVulCount"]
+        result["vulnerabilities"] = self.response["vulnerabilities"]
+
+        return result
 
 
 class PolicyValuation:
-
-    """ 
-    Data object must be:
-    {
-    "imageId": "",
-    "repository": "",
-    "tag": "",
-    "vulnerabilityCount": "",
-    "vulnerabilities": [],
-    "hosts": [],
-    }
-
-    """
-
-    def __init__(self, data: dict):
+    def __init__(self, data):
         self.data = data
         self.vulobject = self.data["vulnerabilities"]
 
@@ -108,8 +119,6 @@ class PolicyValuation:
             result = all(elem in self.cve for elem in item["cveids"])
             if result:
                 raise Exception("CVE Not Permmited")
-        else:
-            raise Exception("Invalid CVE")
 
     def ValuationByVulnCount(self, count):
         self.count = count
