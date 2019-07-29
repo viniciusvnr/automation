@@ -3,7 +3,7 @@ from app_config import config
 import json
 import re
 
-# config.get_apiuri()
+
 class UrlBuilder:
     def __init__(self, base_uri=config.get_apiuri()):
         self.uri = base_uri
@@ -61,12 +61,6 @@ class AnalysisResult:
     def __init__(self):
         pass
 
-    ## Ao invés de usar um dicionário, você poderia fazer uma classe
-    ## Vantagens:
-    ##  1 - Encapsular lógica de parse do JSON na propria classe
-    ##  2 - Seu linter pode checar existencia ou nao de campo mais facilmente
-    ## Nome de exemplo: AnalysisResult
-
     @classmethod
     def get_AnalysisResult(self, response):
         self.response = response.json()
@@ -110,10 +104,6 @@ class PolicyValuation:
 
     def ValuationByCVEId(self, cve: list):
         self.cve = cve
-        # pattern = re.compile(r"CVE-\d{4}-\d{4,7}")
-
-        # if pattern.match():
-        #     pass
 
         for item in self.vulobject:
             result = all(elem in self.cve for elem in item["cveids"])
@@ -129,9 +119,3 @@ class PolicyValuation:
 
 class Notifier:
     pass
-
-
-# class QualysRegistry:
-#     def __init__(self, registryId, scheduleId):
-#         self.registryId = registryId
-#         self.scheduleId = scheduleId
