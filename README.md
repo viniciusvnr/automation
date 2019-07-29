@@ -12,4 +12,4 @@ The objective here is to provide useful scripts for DevOps tasks.
 
 ### Qualys
 
-- [Qualys Api Integration](qualys/qualysvulscan.py.py)
+- [Qualys Api Integration](qualys/qualysvulscan.py)
