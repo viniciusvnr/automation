@@ -99,9 +99,10 @@ class PolicyValuation:
 
     def ValuationByCVEId(self, cve: list):
         self.cve = cve
-        pattern = re.compile(r"CVE-\d{4}-\d{4,7}")
+        # pattern = re.compile(r"CVE-\d{4}-\d{4,7}")
 
-        # if pattern.match(self.cve.):
+        # if pattern.match():
+        #     pass
 
         for item in self.vulobject:
             result = all(elem in self.cve for elem in item["cveids"])
