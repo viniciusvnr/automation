@@ -1,42 +1,57 @@
+import sys
 import requests
+import json
+import re
 from qcs import qcsapi
 from app_config import config
-from pprint import pprint
-import json
 
-# Credential for Api
+
+# qid_toblock, severity_toblock, vulcount_toblock, cve_list
+# image_id = sys.argv[1:]
+
+# Check patterns
+# # cve_list = ["CVE-2019-1543", "CVE-2019-1982", "CVE-2019-1983", "CVE-1999-0511"]
+# *Sugestão:* Usar biblioteca `argparse` para parsing de argumentos
+
+image_id = "476bb14bade6"
+cve_list = []
+cvepattern = re.compile(r"CVE-\d{4}-\d{4,7}")
+imagepattern = re.compile(r"([0-9a-z]{12})")
+
+for arg in sys.argv[1:]:
+    if cvepattern.match(arg):
+        cve_list = arg
+    if imagepattern.match(arg):
+        image_id = arg
+# Creds for Api Access
 creds = config.get_config()
-#  open connection
-con = qcsapi.QualysImages(creds)
-resp = con.GetByImageId("c8428f0b243c")
+# get url to build
+url_builder = qcsapi.UrlBuilder()
+# consume Api
+con = qcsapi.QualysImages(creds, url_builder)
+resp = con.GetByImageId(image_id)
 
-resp_json = resp.json()
 
-# Define my object template
-data = {
-    "imageId": "",
-    "repository": "",
-    "tag": "",
-    "vulnerabilityCount": "",
-    "vulnerabilities": [],
-    "hosts": [],
-}
+print(json.dumps(resp, indent=2))
 
-# build object
-data["imageId"] = resp_json["imageId"]
-data["repository"] = resp_json["repo"][0]["repository"]
-data["tag"] = resp_json["repo"][0]["tag"]
-data["vulnerabilityCount"] = resp_json["totalVulCount"]
+valuation = qcsapi.PolicyValuation(resp)
+# valuation.ValuationByQID(qid_toblock)
+valuation.ValuationBySeverity("2")
+# valuation.ValuationByVulnCount(vulcount_toblock)
+# valuation.ValuationByCVEId(cve_list)
+# print(f"Valuation Succeed. \nData:\n{json.dumps(data, indent=2)}")
 
-for item in resp_json["vulnerabilities"]:
-    data["vulnerabilities"].append(item)
 
-for each in resp_json["host"]:
-    data["hosts"].append(each)
+# class JSONObject:
+#   def __init__( self, dict ):
+#       vars(self).update( dict )
 
-cve_list = ["CVE-2019-1543", "CVE-2019-1982", "CVE-2019-1983"]
-valuation = qcsapi.PolicyValuation(data)
-# valuation.ValuationByQID("177008")
-# valuation.ValuationBySeverity("2")
-# valuation.ValuationByVulnCount("2")
-valuation.ValuationByCVEId(cve_list)
+# #this is valid json string
+# data='{"channel":{"lastBuild":"2013-11-12", "component":["test1", "test2"]}}'
+
+# jsonobject = json.loads( data, object_hook=JSONObject)
+
+# jsonobject.channel.component[0]
+
+# print( jsonobject.channel.component[0]  )
+# print( jsonobject.channel.lastBuild  )
