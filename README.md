@@ -34,6 +34,17 @@ The objective here is to provide useful scripts for DevOps tasks.
 }
 ```
 
+> Environment Variables
+
+- API_USER
+  
+  - Qualys Portal User
+
+- API_PASSWORD
+
+  - Qualys Portal Password
+
+
 > Run script in console
 
 ```sh
