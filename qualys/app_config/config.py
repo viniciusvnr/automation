@@ -3,10 +3,8 @@ import os
 # Api Config
 def get_config():
 
-    # user = os.getenv("API_USER")
-    user = "user"
-    # password = os.getenv("API_PASSWORD")
-    password = r"pass"
+    user = os.getenv("API_USER")
+    password = os.getenv("API_PASSWORD")
     api_credential = (user, password)
     return api_credential
 
