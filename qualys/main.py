@@ -1,57 +1,56 @@
-import sys
-import requests
-import json
-import re
 from qcs import qcsapi
 from app_config import config
+import sys, requests, json, re, argparse
+from dotmap import DotMap
 
 
-# qid_toblock, severity_toblock, vulcount_toblock, cve_list
-# image_id = sys.argv[1:]
+parser = argparse.ArgumentParser(description="Braspag qualys integration to evaluate images in CI pipeline")
+parser.add_argument("--imageid", nargs="+", help="image Id to be evaluated")
+parser.add_argument("--config", nargs=1, help="JSON file to be processed", type=argparse.FileType("r"))
+arguments = parser.parse_args()
 
-# Check patterns
-# # cve_list = ["CVE-2019-1543", "CVE-2019-1982", "CVE-2019-1983", "CVE-1999-0511"]
-# *Sugestão:* Usar biblioteca `argparse` para parsing de argumentos
-
-image_id = "476bb14bade6"
+# Loading arguments
+image_id = arguments.imageid[0]
+config_arg = json.load(arguments.config[0])
 cve_list = []
-cvepattern = re.compile(r"CVE-\d{4}-\d{4,7}")
-imagepattern = re.compile(r"([0-9a-z]{12})")
 
-for arg in sys.argv[1:]:
-    if cvepattern.match(arg):
-        cve_list = arg
-    if imagepattern.match(arg):
-        image_id = arg
+# Check Image Pattern
+imagepattern = re.compile(r"([0-9a-z]{12})")
+if imagepattern.match(image_id):
+    pass
+else:
+    raise Exception("Provide a valid Image ID")
+
+# check CVE Pattern
+cvepattern = re.compile(r"CVE-\d{4}-\d{4,7}")
+for each in config_arg["cves"]:
+    if cvepattern.match(each):
+        cve_list.append(each)
+    else:
+        raise Exception("Invalid cve pattern")
+
+# Fill Qid_List
+qid_list = []
+for each in config_arg["qid"]:
+    qid_list.append(each)
+
+severity_toblock = config_arg["severity"]
+vulncount = config_arg["vulncount"]
+
 # Creds for Api Access
 creds = config.get_config()
+
 # get url to build
 url_builder = qcsapi.UrlBuilder()
-# consume Api
+
+# Api Call
 con = qcsapi.QualysImages(creds, url_builder)
 resp = con.GetByImageId(image_id)
 
-
-print(json.dumps(resp, indent=2))
-
-valuation = qcsapi.PolicyValuation(resp)
-# valuation.ValuationByQID(qid_toblock)
-valuation.ValuationBySeverity("2")
-# valuation.ValuationByVulnCount(vulcount_toblock)
-# valuation.ValuationByCVEId(cve_list)
-# print(f"Valuation Succeed. \nData:\n{json.dumps(data, indent=2)}")
+# Valuation by severity
+valuation = qcsapi.PolicyValuation.ValuationBySeverity(resp, 1)
 
 
-# class JSONObject:
-#   def __init__( self, dict ):
-#       vars(self).update( dict )
-
-# #this is valid json string
-# data='{"channel":{"lastBuild":"2013-11-12", "component":["test1", "test2"]}}'
-
-# jsonobject = json.loads( data, object_hook=JSONObject)
-
-# jsonobject.channel.component[0]
-
-# print( jsonobject.channel.component[0]  )
-# print( jsonobject.channel.lastBuild  )
+# valuation = qcsapi.PolicyValuation.ValuationByVulnCount(resp, 2)
+# valuation = qcsapi.PolicyValuation.ValuationByQId(resp, 177008)
+# valuation = qcsapi.PolicyValuation.ValuationByCVEId(resp, cve_list)

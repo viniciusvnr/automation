@@ -1,7 +1,6 @@
-import requests
+import requests, json, re
 from app_config import config
-import json
-import re
+from dotmap import DotMap
 
 
 class UrlBuilder:
@@ -20,16 +19,16 @@ class QualysSensor:
 
     def GetAll(self):
         result = requests.get(self.url_builder.build("/v1.1/sensors/"), auth=(self.auth))
-        return AnalysisResult.get_AnalysisResult(result)
+        return DotMap(result.json())
 
     def GetBySensorId(self, sensorId):
         self.sensorId = sensorId
         result = requests.get(self.url_builder.build(f"/v1.1/sensors/{self.sensorId}"), auth=(self.auth))
-        return AnalysisResult.get_AnalysisResult(result)
+        return DotMap(result.json())
 
     def RemoveBySensorId(self):
         result = requests.delete(self.url_builder.build(f"/v1.1/sensors/{self.sensorId}"), auth=(self.auth))
-        return AnalysisResult.get_AnalysisResult(result)
+        return DotMap(result.json())
 
 
 class QualysImages:
@@ -39,82 +38,61 @@ class QualysImages:
 
     def GetAll(self):
         result = requests.get(self.url_builder.build("/v1.1/images/"), auth=(self.auth))
-        return AnalysisResult.get_AnalysisResult(result)
+        return DotMap(result.json())
 
     def GetByImageId(self, imageId):
         self.imageId = imageId
         result = requests.get(self.url_builder.build(f"/v1.1/images/{self.imageId}"), auth=(self.auth))
-        return AnalysisResult.get_AnalysisResult(result)
+        return DotMap(result.json())
 
     def GetImageVuln(self, imageId):
-
-        result = requests.get(self.url_builder.build(f"/v1.1/images/{imageId}/vuln"), auth=(self.auth))
-        return AnalysisResult.get_AnalysisResult(result)
+        self.imageId = imageId
+        result = requests.get(self.url_builder.build(f"/v1.1/images/{self.imageId}/vuln"), auth=(self.auth))
+        return DotMap(result.json())
 
     def GetImageVulnCount(self, imageId):
         self.imageId = imageId
         result = requests.get(self.url_builder.build(f"/v1.1/images/{self.imageId}/vuln/count"), auth=(self.auth))
-        return AnalysisResult.get_AnalysisResult(result)
-
-
-class AnalysisResult:
-    def __init__(self):
-        pass
-
-    @classmethod
-    def get_AnalysisResult(self, response):
-        self.response = response.json()
-        template = """{
-                        "imageId": "",
-                        "repository": "",
-                        "tag": "",
-                        "vulnerabilityCount": "",
-                        "vulnerabilities": "[]"
-                       }"""
-
-        result = json.loads(template)
-
-        result["imageId"] = self.response["imageId"]
-        result["repository"] = self.response["repo"][0]["repository"]
-        result["tag"] = self.response["repo"][0]["tag"]
-        result["vulnerabilityCount"] = self.response["totalVulCount"]
-        result["vulnerabilities"] = self.response["vulnerabilities"]
-
-        return result
+        return DotMap(result.json())
 
 
 class PolicyValuation:
-    def __init__(self, data):
-        self.data = data
-        self.vulobject = self.data["vulnerabilities"]
+    @classmethod
+    def ValuationBySeverity(self, valuation_object, sev=5):
+        self.sev = sev
+        self.valuation_object = valuation_object
+        for vul in self.valuation_object.vulnerabilities:
+            if vul.severity >= self.sev:
+                raise Exception(f"The severity found ({vul.severity}) is equal to or greater than the specified severity ({self.sev})\nVulnerability: {vul.title}\nTask stopped.")
 
-    def ValuationByQID(self, qid):
+    @classmethod
+    def ValuationByQId(self, valuation_object, qid):
+        self.valuation_object = valuation_object
         self.qid = qid
+        for vul in self.valuation_object.vulnerabilities:
+            if vul.qid == self.qid:
+                raise Exception(f"QiD {self.qid} found.\nVulnerability: {vul.title}\nTask stopped.")
 
-        for item in self.vulobject:
-            if int(self.qid) == item["qid"]:
-                raise Exception("QID not permmited")
-
-    def ValuationBySeverity(self, severity):
-        self.severity = severity
-
-        for item in self.vulobject:
-            if int(self.severity) == item["severity"]:
-                raise Exception("Severity not permmited")
-
-    def ValuationByCVEId(self, cve: list):
+    @classmethod
+    def ValuationByCVEId(self, valuation_object, cve: list):
+        self.valuation_object = valuation_object.vulnerabilities
         self.cve = cve
-
-        for item in self.vulobject:
-            result = all(elem in self.cve for elem in item["cveids"])
+        self.imageId = valuation_object.imageId
+        for vul in self.valuation_object:
+            result = any(elem in self.cve for elem in vul.cveids)
             if result:
-                raise Exception("CVE Not Permmited")
+                raise Exception(f"CVEId found on ImageId {self.imageId}.\nCVE List: {self.cve}.\nVulnerability: {vul.title}\nTask stopped.")
 
-    def ValuationByVulnCount(self, count):
+    @classmethod
+    def ValuationByVulnCount(self, valuation_object, count):
+        self.valuation_object = valuation_object
         self.count = count
-
-        if self.data["vulnerabilityCount"] >= self.count:
-            raise Exception("vulnerability count exceed.")
+        if self.valuation_object is list:
+            for item in self.valuation_object:
+                if self.count >= item.totalVulCount:
+                    raise Exception(f"Number of vulnerabilities exceeded: ({self.count}).\nImage Id: {item.imageId}\nTask stopped.")
+        if self.count == int(self.valuation_object.totalVulCount):
+            raise Exception(f"Number of vulnerabilities exceeded: {self.count}.\nImage Id: {self.valuation_object.imageId}\nTask stopped.")
 
 
 class Notifier:
