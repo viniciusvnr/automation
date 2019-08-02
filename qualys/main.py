@@ -48,7 +48,7 @@ con = qcsapi.QualysImages(creds, url_builder)
 resp = con.GetByImageId(image_id)
 
 # Valuation by severity
-valuation = qcsapi.PolicyValuation.ValuationBySeverity(resp, 1)
+valuation = qcsapi.PolicyValuation.ValuationBySeverity(resp, severity_toblock)
 
 
 # valuation = qcsapi.PolicyValuation.ValuationByVulnCount(resp, 2)
