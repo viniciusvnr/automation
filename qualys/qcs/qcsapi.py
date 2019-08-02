@@ -43,7 +43,12 @@ class QualysImages:
     def GetByImageId(self, imageId):
         self.imageId = imageId
         result = requests.get(self.url_builder.build(f"/v1.1/images/{self.imageId}"), auth=(self.auth))
-        return DotMap(result.json())
+        if result.status_code == 200:
+            response = DotMap(result.json())
+        else:
+            raise Exception(f"Invalid Request.\n Httpcode: {result.status_code}")
+
+        return response
 
     def GetImageVuln(self, imageId):
         self.imageId = imageId
