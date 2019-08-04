@@ -1,8 +1,9 @@
-from qcs import qcsapi
-from app_config import config
-import sys, requests, json, re, argparse
-from dotmap import DotMap
+import argparse
+import json
+import re
 
+from app_config import config
+from qcs import qcsapi
 
 parser = argparse.ArgumentParser(description="Braspag qualys integration to evaluate images in CI pipeline")
 parser.add_argument("--imageid", nargs="+", help="image Id to be evaluated")

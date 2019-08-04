@@ -1,6 +1,7 @@
-import requests, json, re
-from app_config import config
+import requests
 from dotmap import DotMap
+
+from app_config import config
 
 
 class UrlBuilder:
