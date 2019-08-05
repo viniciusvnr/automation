@@ -47,7 +47,7 @@ class QualysImages:
         if result.status_code == 200:
             response = DotMap(result.json())
         else:
-            raise Exception(f"Invalid Request.\n Httpcode: {result.status_code}")
+            raise Exception(f"Invalid Request.\nhttp-code: {result.status_code}")
 
         return response
 
