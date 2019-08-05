@@ -19,16 +19,18 @@ class QualysSensor:
         self.url_builder = url_builder
 
     def GetAll(self):
-        result = requests.get(self.url_builder.build("/v1.1/sensors/"), auth=(self.auth))
+        result = requests.get(self.url_builder.build(
+            "/v1.1/sensors/"), auth=(self.auth))
         return DotMap(result.json())
 
     def GetBySensorId(self, sensorId):
         self.sensorId = sensorId
-        result = requests.get(self.url_builder.build(f"/v1.1/sensors/{self.sensorId}"), auth=(self.auth))
+        result = requests.get(self.url_builder.build("/v1.1/sensors/{}".format(self.sensorId)), auth=(self.auth))
         return DotMap(result.json())
 
-    def RemoveBySensorId(self):
-        result = requests.delete(self.url_builder.build(f"/v1.1/sensors/{self.sensorId}"), auth=(self.auth))
+    def RemoveBySensorId(self, sensorId):
+        self.sensorId = sensorId
+        result = requests.delete(self.url_builder.build("/v1.1/sensors/{}".format(self.sensorId)), auth=(self.auth))
         return DotMap(result.json())
 
 
@@ -43,22 +45,22 @@ class QualysImages:
 
     def GetByImageId(self, imageId):
         self.imageId = imageId
-        result = requests.get(self.url_builder.build(f"/v1.1/images/{self.imageId}"), auth=(self.auth))
+        result = requests.get(self.url_builder.build("/v1.1/images/{}".format(self.imageId)), auth=(self.auth))
         if result.status_code == 200:
             response = DotMap(result.json())
         else:
-            raise Exception(f"Invalid Request.\nhttp-code: {result.status_code}")
+            raise Exception("Invalid Request.\nhttp-code: {}".format(result.status_code))
 
         return response
 
     def GetImageVuln(self, imageId):
         self.imageId = imageId
-        result = requests.get(self.url_builder.build(f"/v1.1/images/{self.imageId}/vuln"), auth=(self.auth))
+        result = requests.get(self.url_builder.build("/v1.1/images/{}/vuln".format(self.imageId)), auth=(self.auth))
         return DotMap(result.json())
 
     def GetImageVulnCount(self, imageId):
         self.imageId = imageId
-        result = requests.get(self.url_builder.build(f"/v1.1/images/{self.imageId}/vuln/count"), auth=(self.auth))
+        result = requests.get(self.url_builder.build("/v1.1/images/{}/vuln/count".format(self.imageId)), auth=(self.auth))
         return DotMap(result.json())
 
 
@@ -69,8 +71,7 @@ class PolicyValuation:
         self.valuation_object = valuation_object
         for vul in self.valuation_object.vulnerabilities:
             if vul.severity >= self.sev:
-                raise Exception(f"The severity found ({vul.severity}) is equal to or greater than the specified"
-                                f" severity ({self.sev})\nVulnerability: {vul.title}\nTask stopped.")
+                raise Exception("The severity found ({}) is equal to or greater than the specified severity ({})\nVulnerability: {}\nTask stopped.".format(vul.severity, self.sev, vul.title))
 
     @classmethod
     def ValuationByQId(self, valuation_object, qid):
@@ -78,17 +79,17 @@ class PolicyValuation:
         self.qid = qid
         for vul in self.valuation_object.vulnerabilities:
             if vul.qid == self.qid:
-                raise Exception(f"QiD {self.qid} found.\nVulnerability: {vul.title}\nTask stopped.")
+                raise Exception("QiD {} found.\nVulnerability: {}\nTask stopped.".format(self.qid, vul.title))
 
     @classmethod
-    def ValuationByCVEId(self, valuation_object, cve: list):
+    def ValuationByCVEId(self, valuation_object, cve):
         self.valuation_object = valuation_object.vulnerabilities
         self.cve = cve
         self.imageId = valuation_object.imageId
         for vul in self.valuation_object:
             result = any(elem in self.cve for elem in vul.cveids)
             if result:
-                raise Exception(f"CVEId found on ImageId {self.imageId}.\nCVE List: {self.cve}.\nVulnerability: {vul.title}\nTask stopped.")
+                raise Exception("CVEId found on ImageId {}.\nCVE List: {}.\nVulnerability: {}\nTask stopped.".format(self.imageId, self.cve, vul.title))
 
     @classmethod
     def ValuationByVulnCount(self, valuation_object, count):
@@ -97,9 +98,9 @@ class PolicyValuation:
         if self.valuation_object is list:
             for item in self.valuation_object:
                 if self.count >= item.totalVulCount:
-                    raise Exception(f"Number of vulnerabilities exceeded: ({self.count}).\nImage Id: {item.imageId}\nTask stopped.")
+                    raise Exception("Number of vulnerabilities exceeded: ({}).\nImage Id: {}\nTask stopped.".format(self.count, item.imageId))
         if self.count == int(self.valuation_object.totalVulCount):
-            raise Exception(f"Number of vulnerabilities exceeded: {self.count}.\nImage Id: {self.valuation_object.imageId}\nTask stopped.")
+            raise Exception("Number of vulnerabilities exceeded: {}.\nImage Id: {}\nTask stopped.".format(self.count, self.valuation_object.imageId))
 
 
 class Notifier:
