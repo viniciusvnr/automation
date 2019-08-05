@@ -69,7 +69,8 @@ class PolicyValuation:
         self.valuation_object = valuation_object
         for vul in self.valuation_object.vulnerabilities:
             if vul.severity >= self.sev:
-                raise Exception(f"The severity found ({vul.severity}) is equal to or greater than the specified severity ({self.sev})\nVulnerability: {vul.title}\nTask stopped.")
+                raise Exception(f"The severity found ({vul.severity}) is equal to or greater than the specified"
+                                f" severity ({self.sev})\nVulnerability: {vul.title}\nTask stopped.")
 
     @classmethod
     def ValuationByQId(self, valuation_object, qid):
