@@ -128,3 +128,6 @@ dmypy.json
 
 #wildcards to ignore
 *.ignore.*
+
+# pycharm
+.idea/*
