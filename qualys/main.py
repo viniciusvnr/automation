@@ -48,10 +48,15 @@ url_builder = qcsapi.UrlBuilder()
 con = qcsapi.QualysImages(creds, url_builder)
 resp = con.GetByImageId(image_id)
 
+
 # Valuation by severity
-valuation = qcsapi.PolicyValuation.ValuationBySeverity(resp, severity_toblock)
+valuation = qcsapi.PolicyValuation.ValuationBySeverity(resp)
+
+# Remove Sensor
+sensor_con = qcsapi.QualysSensor(creds, url_builder)
+# Remove Sensor with Type CI/CD
+sensor_resp = sensor_con.RemoveSensorByType()
+# sensor_uuid = ["73f7f5a8-328c-4813-9551-7d414f238477"]
+# sensor_resp = sensor_con.RemoveBySensoruuId(sensor_uuid)
 
 
-# valuation = qcsapi.PolicyValuation.ValuationByVulnCount(resp, 2)
-# valuation = qcsapi.PolicyValuation.ValuationByQId(resp, 177008)
-# valuation = qcsapi.PolicyValuation.ValuationByCVEId(resp, cve_list)

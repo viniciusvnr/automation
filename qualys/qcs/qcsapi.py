@@ -1,4 +1,5 @@
 import requests
+import json
 from dotmap import DotMap
 
 from app_config import config
@@ -28,10 +29,27 @@ class QualysSensor:
         result = requests.get(self.url_builder.build("/v1.1/sensors/{}".format(self.sensorId)), auth=(self.auth))
         return DotMap(result.json())
 
-    def RemoveBySensorId(self, sensorId):
-        self.sensorId = sensorId
-        result = requests.delete(self.url_builder.build("/v1.1/sensors/{}".format(self.sensorId)), auth=(self.auth))
-        return DotMap(result.json())
+    def RemoveBySensoruuId(self, sensor_uuid):
+        self.sensor_uuid = sensor_uuid
+
+        body = {"sensorIds": self.sensor_uuid}
+        payload = json.dumps(body)
+        headers = {'content-type': 'application/json'}
+        result = requests.delete(self.url_builder.build("/v1.1/sensors"), data=payload, auth=(self.auth), headers=headers)
+        if result.status_code == 200:
+            return DotMap(result.json())
+        else:
+            raise Exception("Failed to delete sensor ID {}. Status Code {}".format(self.sensorId, result.status_code))
+
+    def RemoveSensorByType(self):
+        body = {"filter": "sensorType:CICD"}
+        payload = json.dumps(body)
+        headers = {'content-type': 'application/json'}
+        result = requests.delete(self.url_builder.build("/v1.1/sensors"), data=payload, auth=(self.auth), headers=headers)
+        if result.status_code == 200:
+            return DotMap(result.json())
+        else:
+            raise Exception("Failed to delete sensor CI/CD. Status Code {}".format(result.status_code))
 
 
 class QualysImages:
@@ -72,6 +90,7 @@ class PolicyValuation:
         for vul in self.valuation_object.vulnerabilities:
             if vul.severity >= self.sev:
                 raise Exception("The severity found ({}) is equal to or greater than the specified severity ({})\nVulnerability: {}\nTask stopped.".format(vul.severity, self.sev, vul.title))
+        print("Specified vulnerability not found.")
 
     @classmethod
     def ValuationByQId(self, valuation_object, qid):
