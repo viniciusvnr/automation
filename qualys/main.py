@@ -56,7 +56,7 @@ valuation = qcsapi.PolicyValuation.ValuationBySeverity(resp)
 sensor_con = qcsapi.QualysSensor(creds, url_builder)
 # Remove Sensor with Type CI/CD
 sensor_resp = sensor_con.RemoveSensorByType()
-# sensor_uuid = ["73f7f5a8-328c-4813-9551-7d414f238477"]
+# sensor_uuid = ["5df33757-4b45-4cf0-927d-824c775c63d7","0b3dd01f-7607-4817-befe-f9ac576c16b7"]
 # sensor_resp = sensor_con.RemoveBySensoruuId(sensor_uuid)
 
 
