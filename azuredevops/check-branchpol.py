@@ -21,7 +21,7 @@ slackuri = "{SlackWebhook_url}"
 
 # Azure DevOps
 personal_access_token = '{PAT_TOKEN}'
-organization_url = 'https://dev.azure.com/{organization}'
+organization_url = 'https://dev.azure.com/braspag'
 
 credentials = BasicAuthentication('', personal_access_token)
 tpprovider = 'git'

@@ -1,4 +1,5 @@
 import requests
+import json
 from dotmap import DotMap
 
 from app_config import config
@@ -21,17 +22,41 @@ class QualysSensor:
     def GetAll(self):
         result = requests.get(self.url_builder.build(
             "/v1.1/sensors/"), auth=(self.auth))
-        return DotMap(result.json())
+        if result.status_code == 200:
+            return DotMap(result.json())
+        else:
+            raise Exception("Fail to get sensors.\nhttp-code: {}".format(result.status_code))
 
     def GetBySensorId(self, sensorId):
         self.sensorId = sensorId
         result = requests.get(self.url_builder.build("/v1.1/sensors/{}".format(self.sensorId)), auth=(self.auth))
-        return DotMap(result.json())
+        if result.status_code == 200:
+            return DotMap(result.json())
+        else:
+            raise Exception("Failed to Get sensor ID {}. Status Code {}".format(self.sensorId, result.status_code))
 
-    def RemoveBySensorId(self, sensorId):
-        self.sensorId = sensorId
-        result = requests.delete(self.url_builder.build("/v1.1/sensors/{}".format(self.sensorId)), auth=(self.auth))
-        return DotMap(result.json())
+    def RemoveBySensoruuId(self, sensor_uuid):
+        self.sensor_uuid = sensor_uuid
+
+        body = {"sensorIds": self.sensor_uuid}
+        payload = json.dumps(body)
+        headers = {'content-type': 'application/json'}
+        result = requests.delete(self.url_builder.build("/v1.1/sensors"), data=payload, auth=(self.auth), headers=headers)
+        if result.status_code == 200:
+            return DotMap(result.json())
+        else:
+            raise Exception("Failed to delete sensor ID {}. Status Code {}".format(self.sensor_uuid, result.status_code))
+
+    def RemoveSensorByType(self):
+        body = {"filter": "sensorType:CICD"}
+        payload = json.dumps(body)
+        headers = {'content-type': 'application/json'}
+        result = requests.delete(self.url_builder.build("/v1.1/sensors"), data=payload, auth=(self.auth), headers=headers)
+        if result.status_code == 200:
+            print("Connection Successfull.\nhttp-code: {}".format(result.status_code))
+            return DotMap(result.json())
+        else:
+            raise Exception("Fail to delete sensor CI/CD. Status Code {}".format(result.status_code))
 
 
 class QualysImages:
@@ -41,37 +66,49 @@ class QualysImages:
 
     def GetAll(self):
         result = requests.get(self.url_builder.build("/v1.1/images/"), auth=(self.auth))
-        return DotMap(result.json())
+        if result.status_code == 200:
+            return DotMap(result.json())
+        else:
+            raise Exception("Fail to get images.\nhttp-code: {}".format(result.status_code))
 
     def GetByImageId(self, imageId):
         self.imageId = imageId
         result = requests.get(self.url_builder.build("/v1.1/images/{}".format(self.imageId)), auth=(self.auth))
         if result.status_code == 200:
-            response = DotMap(result.json())
+            return DotMap(result.json())
         else:
-            raise Exception("Invalid Request.\nhttp-code: {}".format(result.status_code))
-
-        return response
+            raise Exception("Fail to get Image ID.\nhttp-code: {}".format(result.status_code))
 
     def GetImageVuln(self, imageId):
         self.imageId = imageId
         result = requests.get(self.url_builder.build("/v1.1/images/{}/vuln".format(self.imageId)), auth=(self.auth))
-        return DotMap(result.json())
+        if result.status_code == 200:
+            return DotMap(result.json())
+        else:
+            raise Exception("Fail to get Get Image Vulnerability for the image ID {}.\nhttp-code: {}".format(self.imageId,result.status_code))
 
     def GetImageVulnCount(self, imageId):
         self.imageId = imageId
         result = requests.get(self.url_builder.build("/v1.1/images/{}/vuln/count".format(self.imageId)), auth=(self.auth))
-        return DotMap(result.json())
+        if result.status_code == 200:
+            return DotMap(result.json())
+        else:
+            raise Exception("Fail to get vulnerability count for the image ID {}.\nhttp-code: {}".format(self.imageId,result.status_code))
 
 
 class PolicyValuation:
     @classmethod
     def ValuationBySeverity(self, valuation_object, sev=5):
-        self.sev = sev
+        if sev > 0:
+            self.sev = sev
+        else:
+            raise Exception("Severity must be a positive integer. From 1 to 5")
         self.valuation_object = valuation_object
-        for vul in self.valuation_object.vulnerabilities:
-            if vul.severity >= self.sev:
-                raise Exception("The severity found ({}) is equal to or greater than the specified severity ({})\nVulnerability: {}\nTask stopped.".format(vul.severity, self.sev, vul.title))
+        if self.valuation_object.vulnerabilities is not None:
+            for vul in self.valuation_object.vulnerabilities:
+                if vul.severity >= self.sev:
+                    raise Exception("The severity found ({}) is equal to or greater than the specified severity ({})\nVulnerability: {}\nTask stopped.".format(vul.severity, self.sev, vul.title))
+        print("Specified vulnerability not found.")
 
     @classmethod
     def ValuationByQId(self, valuation_object, qid):

@@ -13,7 +13,9 @@ arguments = parser.parse_args()
 # Loading arguments
 image_id = arguments.imageid[0]
 config_arg = json.load(arguments.config[0])
-cve_list = []
+qid_list = config_arg["qid"]
+severity_toblock = config_arg["severity"]
+vulncount = config_arg["vulncount"]
 
 # Check Image Pattern
 imagepattern = re.compile(r"([0-9a-z]{12})")
@@ -23,20 +25,13 @@ else:
     raise Exception("Provide a valid Image ID")
 
 # check CVE Pattern
+cve_list = []
 cvepattern = re.compile(r"CVE-\d{4}-\d{4,7}")
 for each in config_arg["cves"]:
     if cvepattern.match(each):
         cve_list.append(each)
     else:
         raise Exception("Invalid cve pattern")
-
-# Fill Qid_List
-qid_list = []
-for each in config_arg["qid"]:
-    qid_list.append(each)
-
-severity_toblock = config_arg["severity"]
-vulncount = config_arg["vulncount"]
 
 # Creds for Api Access
 creds = config.get_config()
@@ -49,9 +44,14 @@ con = qcsapi.QualysImages(creds, url_builder)
 resp = con.GetByImageId(image_id)
 
 # Valuation by severity
-valuation = qcsapi.PolicyValuation.ValuationBySeverity(resp, severity_toblock)
+valuation = qcsapi.PolicyValuation.ValuationBySeverity(resp)
+
+# Remove Sensor
+# sensor_con = qcsapi.QualysSensor(creds, url_builder)
+# Remove Sensor with Type CI/CD
+# sensor_resp = sensor_con.RemoveSensorByType()
 
 
-# valuation = qcsapi.PolicyValuation.ValuationByVulnCount(resp, 2)
-# valuation = qcsapi.PolicyValuation.ValuationByQId(resp, 177008)
-# valuation = qcsapi.PolicyValuation.ValuationByCVEId(resp, cve_list)
+# sensor_uuid = ["fc9ff560-b3af-4f9d-8206-7cb5a6398a39"]
+# sensor_resp = sensor_con.RemoveBySensoruuId(sensor_uuid)
+
